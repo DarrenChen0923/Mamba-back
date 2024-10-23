@@ -1,0 +1,16 @@
+scikit-learn
+torch
+torchaudio --index-url https://download.pytorch.org/whl/cu117
+torchvision
+pillow
+numpy
+seaborn
+matplotlib
+opencv-python
+tensorboard
+gdown
+torchviz
+scikit-image
+mamba-ssm
+mamba-ssm[causal-conv1d]
+mamba-ssm[dev]
