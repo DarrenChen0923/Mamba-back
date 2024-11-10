@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.utils.data as Data
 import random
 from utils.cli import get_parser
 
@@ -39,6 +38,11 @@ def split_dataset(x, y, train_ratio=0.8):
     # 返回值
     return x_train, x_test, y_train, y_test
 
+def normalize_data(data, overall_max, overall_min):
+    # 对形状为 (64, 9, 1) 的数据进行归一化
+    normalized_data = (data - overall_min) / (overall_max - overall_min)
+    return normalized_data
+
 def get_data():
 
     # set seed
@@ -46,31 +50,38 @@ def get_data():
 
     # set which file to use to build model and what is the grid size
     filenums = [1,2,3]
-    gsize = [args.grid] #5,10,15,20
-    overlapping_step = 3 # 1,3,5
+    gsize = args.grid #5,10,15,20
     shuffle = True
 
     dataset_x = []
     dataset_y = []
-    # MBP14 ： /Users/darren/资料/SPIF_DU/MainFolder/5mm_file/outfile3
-    # /home/durrr/phd/SPIF_DU/MainFolder/50mm_file/outfile3/trainingfile_50mm_overlapping_5.txt
+
     for filenum in filenums:
-         with open('/Users/darren/资料/SPIF_DU/MainFolder/{size}mm_file/outfile{fnum}/trainingfile_{size}mm_overlapping_{overlapping_step}.txt'.format(size = gsize, fnum = filenum,overlapping_step = overlapping_step), 'r') as f:
-        # with open('/home/durrr/phd/SPIF_DU/MainFolder/{size}mm_file/outfile{fnum}/trainingfile_{size}mm_overlapping{overlapping_step}.txt'.format(size = gsize, fnum = filenum,overlapping_step = overlapping_step), 'r') as f:
+         temp_x = []
+         with open('/home/duchen/Mamba-back/data/{size}mm_file/outfile{fnum}/trainingfile_{size}mm_overlapping_3.txt'.format(size = gsize, fnum = filenum), 'r') as f:
             lines = f.readlines()
             if shuffle:
                 random.Random(seed).shuffle(lines)
             else:
                 pass
-            # print(lines[10])
             for line in lines:
                 line = line.strip("\n")
-                dataset_x.append(line.split("|")[0].split(","))
-                dataset_y.append(line.split("|")[1])
+                x = line.split("|")[0].split(",")
+                y = line.split("|")[1]
+
+                # 检查 x 中是否包含 'NaN'，并将其替换为 0
+                x = [0 if value == 'NaN' else value for value in x]
+                
+                # 如果 y 是 'NaN'，则将其赋值为 0
+                y = 0 if y == 'NaN' else y
+                temp_x.append(x)
+                dataset_x.append(x)
+                dataset_y.append(y)
+
             
 
-
-    # print(len(dataset_x))
+         print(len(temp_x))
+    print(len(dataset_y))
 
     lable = [float(y) for y in dataset_y]
     input_x = []
@@ -101,5 +112,24 @@ def get_data():
         y_train_tensor = y_train_tensor.cuda()
         y_test_tensor = y_test_tensor.cuda()
     
+    
     return x_train_tensor,y_train_tensor,x_test_tensor,y_test_tensor
+
+
+def find_min_max_from_data(data_tensor):
+    max_values = []
+    min_values = []
+    
+    for line in data_tensor:
+        numbers = line[:9]
+        
+        # 计算最大最小值
+        max_values.append(torch.max(numbers))
+        min_values.append(torch.min(numbers))
+    
+    # 最终最大值和最小值
+    overall_max = torch.max(torch.stack(max_values))
+    overall_min = torch.min(torch.stack(min_values))
+    
+    return overall_max.item(), overall_min.item()
 

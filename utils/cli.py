@@ -24,4 +24,10 @@ def get_parser() -> argparse.ArgumentParser:
         help="Name of the model to be evaluated in trained_models folder."
     )
 
+    parser.add_argument(
+        "--d_model",
+        default= 64,
+        type=int,
+        help="Mamba Model dimension d_model"
+    )
     return parser
