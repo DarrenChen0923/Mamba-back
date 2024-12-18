@@ -1,6 +1,7 @@
 import numpy as np
 from torch import nn
 from torch.nn import functional as F
+import matplotlib.pyplot as plt
 
 from .mutihead_attention import MultiheadCustomAttention
 
@@ -422,56 +423,52 @@ class FFWRelativeCrossAttentionModule(nn.Module):
             output.append(query)
         return output
 
-def vis_attention(weights, pad_mask, k=None):
+def vis_attention(weights):
     
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    import numpy as np
-    import torch
-
-    k = torch.sum(~pad_mask)
-    k.item()
-
-    text = "Walk down the stairs, turn right, and walk towards place with a rug. Wait near the bench and piano along the right side of the wall."
-    tokens = text.replace(".", " .").split()
-
-    # 获取平均注意力权重，形状为 [seq_len, seq_len]
-    avg_weights = weights.mean(dim=1)[0]
-    
-    # 切片操作，保留前k个 key 和 query
-    sliced_weights = avg_weights[:k, :k]
-    
-    # 对 key positions（列方向）进行求和
-    sum_weights = sliced_weights.sum(dim=0)
-    
-    # 将注意力权重转换为numpy数组
-    weights_np = sum_weights.detach().cpu().numpy()
-
-    # 确保tokens长度和权重矩阵匹配
-    if len(tokens) > k:
-        tokens = tokens[:k]
-    elif len(tokens) < k:
-        k = len(tokens)  # 限制k为tokens的长度
-
-    print(sliced_weights)
-    print(sum_weights)
-    
-    # 绘图
-    plt.figure(figsize=(10, 6))
-    
-    # 在key positions上绘制权重和
-    sns.barplot(x=np.arange(len(tokens)), y=weights_np[:k], palette='Blues')
-    
-    # 设置标签为tokens
-    plt.xticks(np.arange(len(tokens)), tokens, rotation=45, ha='right')
-    
-    plt.xlabel('Key Tokens')
-    plt.ylabel('Attention Sum')
-    plt.title(f'Attention Distribution for Each Key Position')
-    plt.tight_layout()
+    sample_index = 1000
+    bs, num_head, _, _ = weights.shape
+    # 检查 sample_index 是否在 batch 范围内
+    if sample_index >= bs:
+        raise ValueError(f"Sample index {sample_index} out of range for batch size {bs}")
+    # 设置图像的行列数
+    fig, axes = plt.subplots(1, num_head, figsize=(num_head * 3, 3))
+    fig.suptitle(f'Attention Scores Visualization for Sample {sample_index+1}', fontsize=16)
+    # 迭代 head，生成每个头的热图
+    for j in range(num_head):
+        ax = axes[j] if num_head > 1 else axes
+        score = weights[sample_index, j].detach().cpu().numpy()  # 提取指定样本的注意力分数
+        img = ax.imshow(score, cmap='viridis')
+        ax.set_title(f'Head {j+1}')
+        ax.axis('off')
+        # 添加 colorbar
+        fig.colorbar(img, ax=ax, fraction=0.046, pad=0.04)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.show()
+ 
+# 示例用法
+# attention_scores = torch.randn(bs, num_head, 9, 9)  # 假设已经有你的注意力分数张量
+# visualize_attention_scores(attention_scores, sample_index=0)
 
+def plot_average_attention_scores(attention_scores):
+    # 假设 attention_scores 的形状为 (batch_size, num_heads, seq_len, seq_len)
+    bs, num_head, seq_len, _ = attention_scores.shape
+    # 对 batch 和 head 维度进行平均，得到每个查询位置的平均注意力分数
+    avg_attention_scores = attention_scores.mean(dim=(0, 1)).detach().cpu().numpy()
+    # 计算每个查询位置的平均分数
+    mean_scores = avg_attention_scores.mean(axis=1)
+    # 归一化到 0-1 范围
+    min_score = mean_scores.min()
+    max_score = mean_scores.max()
+    normalized_scores = (mean_scores - min_score) / (max_score - min_score)
 
+    # 绘制折线图
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(seq_len), normalized_scores, marker='o', linestyle='-', color='b')
+    plt.title('Normalized Average Attention Score per Query Position')
+    plt.xlabel('Query Position')
+    plt.ylabel('Normalized Average Attention Score')
+    plt.grid(True)
+    plt.show()
 
 class FFWRelativeSelfAttentionModule(nn.Module):
 
@@ -501,8 +498,8 @@ class FFWRelativeSelfAttentionModule(nn.Module):
             output.append(query)
 
             if vis:
-                vis_attention(attn_output_weights,pad_mask)
-
+                # vis_attention(attn_output_weights)
+                plot_average_attention_scores(attn_output_weights)
         return output
 
 

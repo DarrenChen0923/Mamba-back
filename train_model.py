@@ -32,10 +32,10 @@ batch = 64
 writer = SummaryWriter('runs/mamba_model_experiment')
 
 # optimizer
-lr = 0.00025
+lr = 0.00001
 
 #complie
-epo = 1000
+epo = 1500
 
 #Create dataloader
 loader = Data.DataLoader(dataset=train_dataset,batch_size=batch,shuffle=True)
@@ -61,6 +61,11 @@ time0 = time()
 overall_max, overall_min = find_min_max_from_data(x_train_tensor)
 
 update_step = 0
+x_test_tensor = x_test_tensor.unsqueeze(-1)
+overall_max, overall_min = find_min_max_from_data(x_test_tensor)
+x_test_tensor = normalize_data(x_test_tensor, overall_max, overall_min)
+y_test_tensor = y_test_tensor.cpu().detach().numpy()
+
 with tqdm(range(epo), unit="epoch") as tepochs:
     for e in tepochs:
         total_loss = 0
@@ -76,14 +81,20 @@ with tqdm(range(epo), unit="epoch") as tepochs:
                 loss = criterion(output, batch_y)
                 total_loss += loss
                 
-                writer.add_scalar('training loss', loss.item(), update_step)
+                writer.add_scalar('loss/train', loss.item(), update_step)
                 update_step += 1
                 loss.backward()
                 optimizer.step()
                 
                 tepoch.set_postfix(loss=loss.item())
-        
-
+        #evaluation 
+        model.eval()
+        pre = model(x_test_tensor)
+        pre = pre.cpu().detach().numpy()
+        mse = mean_squared_error(y_test_tensor,pre)
+        writer.add_scalar('loss/eval', mse.item(), update_step)
+        model.train()
+    
 # saving the model
 os.makedirs("trained_models",exist_ok=True)
 torch.save(model.state_dict(), f'trained_models/mamba_back_{gsize}mm_overlapping_3_dModel_{d_model}.pth')
