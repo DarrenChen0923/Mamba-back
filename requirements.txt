@@ -14,3 +14,4 @@ scikit-image
 mamba-ssm
 mamba-ssm[causal-conv1d]
 mamba-ssm[dev]
+fvcore

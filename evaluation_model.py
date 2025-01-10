@@ -11,6 +11,8 @@ from utils.read_data import find_min_max_from_data
 from mamba_ssm import Mamba
 from utils.cli import get_parser
 
+from time  import time
+
 parser = get_parser()
 args = parser.parse_args()
 
@@ -24,6 +26,7 @@ x_train_tensor,y_train_tensor,x_test_tensor,y_test_tensor = get_data()
 train_dataset = Data.TensorDataset(x_train_tensor,y_train_tensor)
 test_dataset = Data.TensorDataset(x_test_tensor,y_test_tensor)
 
+time0 = time()
 
 #Model#
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -54,3 +57,4 @@ print("MAE",mae)
 print("MSE",mse)
 print("RMSE",rmse)
 print("R2",r2)
+print("\nEvaluation Time(in minutes) = ",(time()-time0)/60)

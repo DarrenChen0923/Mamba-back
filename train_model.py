@@ -13,6 +13,7 @@ from utils.read_data import find_min_max_from_data
 from models.mamba_back_model import MambaModel
 from torch.utils.tensorboard import SummaryWriter
 from utils.cli import get_parser
+from fvcore.nn import FlopCountAnalysis
 
 parser = get_parser()
 args = parser.parse_args()
@@ -50,6 +51,9 @@ model = MambaModel(
     d_conv=4,    # Local convolution width
     expand=2,    # Block expansion factor
 ).to(device=device)
+
+total_params = sum(p.numel() for p in model.parameters())
+print(f"Total parameters: {total_params}")
 
 # print(model)
 
@@ -97,11 +101,19 @@ with tqdm(range(epo), unit="epoch") as tepochs:
     
 # saving the model
 os.makedirs("trained_models",exist_ok=True)
-torch.save(model.state_dict(), f'trained_models/mamba_back_{gsize}mm_overlapping_3_dModel_{d_model}.pth')
+torch.save(model.state_dict(), f'trained_models/new_model/mamba_back_{gsize}mm_overlapping_3_dModel_{d_model}.pth')
 
 print(f"Model saved in trained_models/mamba_back_{gsize}mm_overlapping_3_dModel_{d_model}.pth!")
 
 model.eval()
+
+seq_len = 10
+dummy_input = torch.randn(batch, seq_len, 1)  # (B, L, 1)
+dummy_input = dummy_input.to(device)
+# 计算FLOPs
+flops = FlopCountAnalysis(model, dummy_input)
+print("FLOPs: ", flops.total())
+
 x_train_tensor = x_train_tensor.unsqueeze(-1)
 
 x_train_tensor = normalize_data(x_train_tensor, overall_max, overall_min)

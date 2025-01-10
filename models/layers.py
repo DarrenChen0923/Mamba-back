@@ -496,7 +496,6 @@ class FFWRelativeSelfAttentionModule(nn.Module):
             )
             query = self.ffw_layers[i](query, diff_ts)
             output.append(query)
-
             if vis:
                 # vis_attention(attn_output_weights)
                 plot_average_attention_scores(attn_output_weights)

@@ -58,7 +58,7 @@ def get_data():
 
     for filenum in filenums:
          temp_x = []
-         with open('/home/duchen/Mamba-back/data/{size}mm_file/outfile{fnum}/trainingfile_{size}mm_overlapping_3.txt'.format(size = gsize, fnum = filenum), 'r') as f:
+         with open(args.project_root+'/Mamba-back/data/{size}mm_file/outfile{fnum}/trainingfile_{size}mm_overlapping_3.txt'.format(size = gsize, fnum = filenum), 'r') as f:
             lines = f.readlines()
             if shuffle:
                 random.Random(seed).shuffle(lines)
